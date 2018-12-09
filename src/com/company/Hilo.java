@@ -14,7 +14,8 @@ import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class Hilo extends Thread{
+public class Hilo extends Thread {
+
 
     private Socket socket;
     private OutputStream outputStream;
@@ -22,7 +23,7 @@ public class Hilo extends Thread{
     private KeyPairGenerator keyPairGenerator;
     private KeyPair keyPair;
     private Cipher cipher;
-    private final String RUTAUSUARIOS = "Usuarios.txt";
+
     private Usuario usuario;
     private ArrayList<Usuario> usuarios;
 
@@ -31,23 +32,20 @@ public class Hilo extends Thread{
     }
 
     @Override
-    public void run(){
+    public void run() {
 
         try {
 
             keyPairGenerator = KeyPairGenerator.getInstance("RSA");
             keyPair = keyPairGenerator.generateKeyPair();
             cipher = Cipher.getInstance("RSA");
-            cipher.init(Cipher.DECRYPT_MODE,keyPair.getPrivate());
+            cipher.init(Cipher.DECRYPT_MODE, keyPair.getPrivate());
 
             outputStream = socket.getOutputStream();
             inputStream = socket.getInputStream();
 
-            ObjectOutputStream oosFile = new ObjectOutputStream(new FileOutputStream(new File(RUTAUSUARIOS)));
             ObjectOutputStream objectOutputStream = new ObjectOutputStream(outputStream);
-            ObjectInputStream oisFile = new ObjectInputStream(new FileInputStream(new File(RUTAUSUARIOS)));
             ObjectInputStream objectInputStream = new ObjectInputStream(inputStream);
-            
 
             objectOutputStream.writeObject(keyPair.getPublic());
             System.out.println("---CLAVE PÚBLICA ENVIADA---");
@@ -56,29 +54,22 @@ public class Hilo extends Thread{
 
             boolean correcto = false;
             if (opcion.equalsIgnoreCase("SI")) {    //LOGIN
-                while (!correcto){
+                while (!correcto) {
+                    outputStream.flush();
                     //recibo el nick y lo descifro
                     byte[] nickCifrado = (byte[]) objectInputStream.readObject();
+                    System.out.println("---NICK CIFRADO RECIBIDO---");
                     String nick = new String(cipher.doFinal(nickCifrado));
+                    System.out.println("---NICK DESCIFRADO---");
                     //compruebo si existe y recojo el pass
-                    try {
-                        while (true) {
-                            Usuario usuarioTemp = (Usuario) oisFile.readObject();
-                            if (usuarioTemp.getNick().equals(nick)) {
-                                usuario = usuarioTemp;
-                            }
-                        }
-                    } catch (EOFException e) {
-                    } catch (StreamCorruptedException x) {
-                    } catch (ClassNotFoundException e) {
-                        e.printStackTrace();
-                    }
+                    leerNickArchivo(nick);
+
                     //envio la confirmacion del nick
                     if (usuario != null) {
-                        objectOutputStream.writeBoolean(true);
+                        objectOutputStream.writeObject(true);
                         //recibo el pass y lo comparo con el guardado
                         byte[] passRecibido = (byte[]) objectInputStream.readObject();
-                        if (Arrays.equals(usuario.getPass(), passRecibido)) {
+                        if (cipher.doFinal(usuario.getPass()).equals(cipher.doFinal(passRecibido))) {
                             objectOutputStream.writeBoolean(true);
                             System.out.println("---USUARIO " + usuario.getNombre() + "//" + usuario.getNick() + " LOGEADO CORRECTAMENTE---");
                             correcto = true;
@@ -91,36 +82,22 @@ public class Hilo extends Thread{
                         correcto = false;
                     }
                 }
-            }else {                                                 //REGISTRO
+            } else {                                                 //REGISTRO
                 System.out.println("---COMIENZA EL REGISTRO DE USUARIO---");
                 String nombre = objectInputStream.readUTF();
                 String apellido = objectInputStream.readUTF();
                 int edad = objectInputStream.readInt();
                 String nick = objectInputStream.readUTF();
-                outputStream.flush();
                 byte[] pass = (byte[]) objectInputStream.readObject();
-                usuario = new Usuario(nombre,apellido,edad,nick,pass);
+                usuario = new Usuario(nombre, apellido, edad, nick, pass);
                 System.out.println("---USUARIO CREADO---");
                 //leo el archivo y guardo todos los usuarios en el array
-                try {
-                    while (true) {
-                        Usuario usuarioTemp = (Usuario) oisFile.readObject();
-                        usuarios.add(usuarioTemp);
-                    }
-                } catch (EOFException e) {
-                } catch (StreamCorruptedException x) {
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
+                boolean guardado = leerGuardarArchivo();
+                if (guardado){
+                    System.out.println("---USUARIO GUARDADO---");
+                }else {
+                    System.out.println("---ERROR USUARIO NO GUARDADO---");
                 }
-                //añado el usuario nuevo al arraylist
-                if (usuarios==null){
-                    usuarios = new ArrayList<>();
-                }
-                usuarios.add(usuario);
-                for (Usuario usu:usuarios){
-                    objectOutputStream.writeObject(usu);
-                }
-                System.out.println("---ARCHIVO DE USUARIOS ACTUALIZADO---");
             }
 
         } catch (IOException e) {
@@ -140,5 +117,57 @@ public class Hilo extends Thread{
         }
 
 
+    }
+
+    private synchronized boolean leerGuardarArchivo(){
+        try {
+
+            while (true) {
+                Usuario usuarioTemp = (Usuario) Servidor.oisFile.readObject();
+                usuarios.add(usuarioTemp);
+            }
+        } catch (EOFException e) {
+        } catch (StreamCorruptedException x) {
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        //añado el usuario nuevo al arraylist
+        if (usuarios == null) {
+            usuarios = new ArrayList<>();
+        }
+        usuarios.add(usuario);
+        for (Usuario usu : usuarios) {
+            try {
+                Servidor.oosFile.writeObject(usu);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            System.out.println("---ARCHIVO DE USUARIOS ACTUALIZADO---");
+        }
+
+        return true;
+    }
+
+    private synchronized void leerNickArchivo(String nick){
+        try {
+            while (true) {
+                Usuario usuarioTemp = (Usuario) Servidor.oisFile.readObject();
+                System.out.println("--BUSCANDO NICK EN EL ARCHIVO:" + usuarioTemp.getNick() + "---");
+                if (usuarioTemp.getNick().equals(nick)) {
+                    usuario = usuarioTemp;
+                    System.out.println("---NICK ENCONTRADO---");
+                }
+            }
+        } catch (EOFException e) {
+        } catch (StreamCorruptedException x) {
+            x.printStackTrace();
+        } catch (ClassNotFoundException o) {
+            o.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

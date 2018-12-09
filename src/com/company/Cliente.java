@@ -10,6 +10,7 @@ import java.net.Socket;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.sql.SQLOutput;
 
 public class Cliente {
 
@@ -48,9 +49,12 @@ public class Cliente {
                     String nick = br.readLine();
                     //cifro el nick y lo envio
                     byte[] nickCifrado = cipher.doFinal(nick.getBytes());
+                    System.out.println("---NICK CIFRADO---");
                     objectOutputStream.writeObject(nickCifrado);
+                    System.out.println("---NICK ENVIADO---");
                     //recibo la confirmación de que el nick existe
-                    boolean nickCorrecto = objectInputStream.readBoolean();
+                    boolean nickCorrecto = (boolean) objectInputStream.readObject();
+                    System.out.println("---RECIBIDA CONFIRMACIÓN---");
                     if (nickCorrecto){
                         System.out.println("Escribe tu contraseña:");
                         //cifro la contraseña y la envio
