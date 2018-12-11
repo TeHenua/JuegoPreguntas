@@ -8,9 +8,9 @@ public class Usuario implements Serializable {
     private String apellido;
     private int edad;
     private String nick;
-    private byte[] pass;
+    private String pass;
 
-    public Usuario(String nombre, String apellido, int edad, String nick, byte[] pass) {
+    public Usuario(String nombre, String apellido, int edad, String nick, String pass) {
         this.nombre = nombre;
         this.apellido = apellido;
         this.edad = edad;
@@ -50,11 +50,11 @@ public class Usuario implements Serializable {
         this.nick = nick;
     }
 
-    public byte[] getPass() {
+    public String getPass() {
         return pass;
     }
 
-    public void setPass(byte[] pass) {
+    public void setPass(String pass) {
         this.pass = pass;
     }
 }
