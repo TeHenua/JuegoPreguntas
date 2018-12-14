@@ -69,13 +69,15 @@ public class Hilo extends Thread {
                         objectOutputStream.writeObject(true);
                         //recibo el pass y lo comparo con el guardado
                         byte[] passRecibido = (byte[]) objectInputStream.readObject();
-                        if (cipher.doFinal(usuario.getPass()).equals(cipher.doFinal(passRecibido))) {
+                        if (usuario.getPass().equals(new String(cipher.doFinal(passRecibido)))) {
                             objectOutputStream.writeBoolean(true);
                             System.out.println("---USUARIO " + usuario.getNombre() + "//" + usuario.getNick() + " LOGEADO CORRECTAMENTE---");
                             correcto = true;
+                            System.out.println("---PASS CORRECTA---");
                         } else {
                             objectOutputStream.writeBoolean(false);
                             correcto = false;
+                            System.out.println("---PASS INCORRECTA---");
                         }
                     } else {
                         objectOutputStream.writeBoolean(false);
@@ -89,7 +91,8 @@ public class Hilo extends Thread {
                 int edad = objectInputStream.readInt();
                 String nick = objectInputStream.readUTF();
                 byte[] pass = (byte[]) objectInputStream.readObject();
-                usuario = new Usuario(nombre, apellido, edad, nick, pass);
+                String passDes = new String(cipher.doFinal(pass));
+                usuario = new Usuario(nombre, apellido, edad, nick, passDes);
                 System.out.println("---USUARIO CREADO---");
                 //leo el archivo y guardo todos los usuarios en el array
                 boolean guardado = leerGuardarArchivo();
@@ -124,6 +127,10 @@ public class Hilo extends Thread {
 
             while (true) {
                 Usuario usuarioTemp = (Usuario) Servidor.oisFile.readObject();
+                if (usuarios == null) {
+                    usuarios = new ArrayList<>();
+                }
+                //añado el usuario nuevo al arraylist
                 usuarios.add(usuarioTemp);
             }
         } catch (EOFException e) {
@@ -134,7 +141,6 @@ public class Hilo extends Thread {
             e.printStackTrace();
         }
 
-        //añado el usuario nuevo al arraylist
         if (usuarios == null) {
             usuarios = new ArrayList<>();
         }
