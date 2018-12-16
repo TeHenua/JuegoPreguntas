@@ -86,7 +86,9 @@ public class Cliente2 {
         if (correcto){
             System.out.println("Respuesta correcta.");
         }else {
-            System.out.println("Respuesta incorrecta.");
+
+            String respuestaCorrecta = (String) objectInputStream.readObject();
+            System.out.println("Has fallado. La respuesta correcta es "+respuestaCorrecta);
         }
     }
 

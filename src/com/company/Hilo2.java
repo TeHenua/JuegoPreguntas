@@ -40,8 +40,21 @@ public class Hilo2 extends Thread{
             cargarPreguntas();
             int puntuación = 0;
             Random r = new Random();
+            ArrayList<Integer> numeros = new ArrayList<>();
             for (int i=0;i<5;i++) {
-                int n = r.nextInt(25);
+                int n = r.nextInt(25); //TODO repite preguntas
+                boolean repetido=false;
+                do {
+                    for (Integer in:numeros){
+                        if (in==n){
+                            repetido = true;
+                            n = r.nextInt(25);
+                        }else{
+                            numeros.add(n);
+                            repetido = false;
+                        }
+                    }
+                }while (repetido);
                 enviarPregunta(n);
                 puntuación += comprobarRespuesta(n);
             }
@@ -126,6 +139,7 @@ public class Hilo2 extends Thread{
             return 1;
         }else {
             objectOutputStream.writeObject(false);
+            objectOutputStream.writeObject(respuestas.get(n));
             return 0;
         }
     }
