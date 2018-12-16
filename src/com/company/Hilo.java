@@ -1,9 +1,6 @@
 package com.company;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
+import javax.crypto.*;
 import java.io.*;
 import java.net.Socket;
 import java.security.*;
@@ -43,8 +40,7 @@ public class Hilo extends Thread {
 
             keyPairGenerator = KeyPairGenerator.getInstance("RSA");
             keyPair = keyPairGenerator.generateKeyPair();
-            cipher = Cipher.getInstance("RSA");
-            cipher.init(Cipher.DECRYPT_MODE, keyPair.getPrivate());
+            iniciarCipher();
             dsa = Signature.getInstance("SHA1WITHRSA");
             dsa.initSign(keyPair.getPrivate());
 
@@ -85,8 +81,6 @@ public class Hilo extends Thread {
             e.printStackTrace();
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
-        } catch (NoSuchPaddingException e) {
-            e.printStackTrace();
         } catch (InvalidKeyException e) {
             e.printStackTrace();
         } catch (SignatureException e) {
@@ -96,11 +90,26 @@ public class Hilo extends Thread {
 
     }
 
+    private void iniciarCipher(){
+        try {
+            cipher = Cipher.getInstance("RSA");
+            cipher.init(Cipher.ENCRYPT_MODE,keyPair.getPrivate());
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (NoSuchPaddingException e) {
+            e.printStackTrace();
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
+        }
+
+    }
+
     private void login(){
         try{
             //recibo el nick y lo descifro
             byte[] nickCifrado = (byte[]) objectInputStream.readObject();
             System.out.println("---NICK CIFRADO RECIBIDO---");
+            iniciarCipher();
             String nick = new String(cipher.doFinal(nickCifrado));
             System.out.println("---NICK DESCIFRADO---");
             //compruebo si existe y recojo el pass
@@ -138,13 +147,19 @@ public class Hilo extends Thread {
     private void registro(){
         try {
             System.out.println("---COMIENZA EL REGISTRO DE USUARIO---");
-            String nombre = objectInputStream.readUTF();
+            /*String nombre = objectInputStream.readUTF();
             String apellido = objectInputStream.readUTF();
             int edad = objectInputStream.readInt();
             String nick = objectInputStream.readUTF();
             byte[] pass = (byte[]) objectInputStream.readObject();
             usuario = new Usuario(nombre, apellido, edad, nick, new String(cipher.doFinal(pass)));
-            System.out.println("---USUARIO CREADO---");
+            System.out.println("---USUARIO CREADO---");*/
+            iniciarCipher();
+            CipherInputStream cipherInputStream = new CipherInputStream(inputStream,cipher);
+            ObjectInputStream oisCip = new ObjectInputStream(cipherInputStream);
+
+            SealedObject sealedObject = (SealedObject) oisCip.readObject();
+            usuario = (Usuario) sealedObject.getObject(cipher);
             //leo el archivo y guardo todos los usuarios en el array
             boolean guardado = leerGuardarUsuario();
             if (guardado) {
@@ -185,7 +200,7 @@ public class Hilo extends Thread {
 */
             //for (Usuario usu : usuarios) {
             oosFile.flush();
-                oosFile.writeObject(usuario);
+            oosFile.writeObject(usuario);
             //}
             System.out.println("---ARCHIVO DE USUARIOS ACTUALIZADO---");
         //}  catch (ClassNotFoundException e) {

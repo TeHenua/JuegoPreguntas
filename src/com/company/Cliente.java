@@ -1,9 +1,6 @@
 package com.company;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
+import javax.crypto.*;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
@@ -24,7 +21,6 @@ public class Cliente {
 
     public static void main(String[] args) {
         try {
-            cipher = Cipher.getInstance("RSA");
             Socket socket = new Socket(InetAddress.getLocalHost(),PUERTO);
             System.out.println("---CONECTADO CORRECTAMENTE AL SERVIDOR---");
             outputStream = socket.getOutputStream();
@@ -34,7 +30,7 @@ public class Cliente {
             objectInputStream = new ObjectInputStream(inputStream);
 
             key = (PublicKey) objectInputStream.readObject();
-            cipher.init(Cipher.ENCRYPT_MODE,key);
+
             System.out.println("---CLAVE PÚBLICA RECIBIDA---");
             menuUsuario();
             menu();
@@ -45,13 +41,21 @@ public class Cliente {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
-        } catch (NoSuchPaddingException e) {
-            e.printStackTrace();
+        }
+    }
+
+    private static void iniciarCipher(){
+        try {
+            cipher = Cipher.getInstance("RSA");
+            cipher.init(Cipher.ENCRYPT_MODE,key);
         } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (NoSuchPaddingException e) {
             e.printStackTrace();
         } catch (InvalidKeyException e) {
             e.printStackTrace();
         }
+
     }
 
     private static void menu(){
@@ -113,6 +117,7 @@ public class Cliente {
             System.out.println("Escribe tu usuario:");
             String nick = br.readLine();
             //cifro el nick y lo envio
+            iniciarCipher();
             byte[] nickCifrado = cipher.doFinal(nick.getBytes());
             System.out.println("---NICK CIFRADO---");
             objectOutputStream.writeObject(nickCifrado);
@@ -150,7 +155,7 @@ public class Cliente {
 
     private static void registro(){ //TODO cifrar antes de enviar
         try {
-            System.out.println("Escribe tu nombre:");
+            /*System.out.println("Escribe tu nombre:");
             objectOutputStream.writeUTF(br.readLine());
             System.out.println("Escribe tu apellido");
             objectOutputStream.writeUTF(br.readLine());
@@ -159,12 +164,30 @@ public class Cliente {
             System.out.println("Escribe tu nick:");
             objectOutputStream.writeUTF(br.readLine());
             System.out.println("Escribe tu contraseña:");
-            objectOutputStream.writeObject(cipher.doFinal(br.readLine().getBytes()));
+            objectOutputStream.writeObject(cipher.doFinal(br.readLine().getBytes()));*/
+
+            System.out.println("Escribe tu nombre:");
+            String nombre = br.readLine();
+            System.out.println("Escribe tu apellido");
+            String apellido = br.readLine();
+            System.out.println("Escribe tu edad:");
+            int edad = Integer.parseInt(br.readLine());
+            System.out.println("Escribe tu nick:");
+            String nick = br.readLine();
+            System.out.println("Escribe tu contraseña:");
+            String pass = br.readLine();
+            Usuario usuario = new Usuario(nombre,apellido,edad,nick,pass);
+            SealedObject sealedObject = new SealedObject(usuario,cipher);
+            iniciarCipher();
+            CipherOutputStream cos = new CipherOutputStream(outputStream,cipher);
+            ObjectOutputStream oosCip = new ObjectOutputStream(cos);
+            oosCip.writeObject(sealedObject);
+            outputStream.flush();
+
+
         } catch (IOException e) {
             e.printStackTrace();
-        } catch (BadPaddingException e) {
-            e.printStackTrace();
-        } catch (IllegalBlockSizeException e) {
+        }  catch (IllegalBlockSizeException e) {
             e.printStackTrace();
         } catch (NumberFormatException e){
             System.out.println("Número incorrecto");

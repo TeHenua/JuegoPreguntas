@@ -9,6 +9,7 @@ public class Usuario implements Serializable {
     private int edad;
     private String nick;
     private String pass;
+    private int record;
 
     public Usuario(String nombre, String apellido, int edad, String nick, String pass) {
         this.nombre = nombre;
@@ -16,6 +17,7 @@ public class Usuario implements Serializable {
         this.edad = edad;
         this.nick = nick;
         this.pass = pass;
+        this.record = 0;
     }
 
     public String getNombre() {
@@ -56,5 +58,13 @@ public class Usuario implements Serializable {
 
     public void setPass(String pass) {
         this.pass = pass;
+    }
+
+    public int getRecord() {
+        return record;
+    }
+
+    public void setRecord(int record) {
+        this.record = record;
     }
 }
